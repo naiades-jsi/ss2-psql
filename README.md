@@ -13,7 +13,7 @@ While in Docker container, go to `/home/app/ss2-psql` and run `pip install -r re
 
 You can check `lastts.txt` that it containts the last timestamp of a notification in the DB (can be changed manually in order to load new notifications).
 
-Run the script with `python index.py`. The script will run a scheduler, which will check new notifications in PostgreSQL every second. You can adjust the timer to a more reasonable interval (1 minute) for production in `index.py` line 84.
+Run the script with `python index.py`. The script will run a scheduler, which will check new notifications in PostgreSQL every second. You can adjust the timer to a more reasonable interval (1 minute) for production in `index.py` line 98.
 
 ## Results
 

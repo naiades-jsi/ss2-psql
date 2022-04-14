@@ -6,6 +6,8 @@ import datetime, time
 import schedule
 
 def get_last_ts():
+    """Retrives a timestamp of the last observed notification."""
+
     print("Obtaining last timestamp ...")
     try:
         with open('lastts.txt', 'r') as f:
@@ -17,11 +19,17 @@ def get_last_ts():
     return(lastts)
 
 def write_last_ts(ts):
+    """Writes the time of ts (last retrieved notification)"""
+
     with open('lastts.txt', 'w') as f:
         f.write(ts)
 
 def get_last_notifications(lastts):
-    """ Connect to the PostgreSQL database server """
+    """
+    Connect to the PostgreSQL database server and retrieves all the
+    notifications since last notification timestamp.
+    """
+
     conn = None
 
     try:
@@ -76,13 +84,20 @@ def get_last_notifications(lastts):
     return obj
 
 def job():
+    """Job for the scheduler, retrieving new notifications."""
+
     lastts = get_last_ts()
     obj = get_last_notifications(lastts)
+
+    # PUT NAIADES FIWARE code here
     print(obj)
 
 if __name__ == '__main__':
+    # scheduling each second (change to a more reasonable duration)
+    # in production
     schedule.every(1).seconds.do(job)
 
+    # infinite loop
     while True:
         schedule.run_pending()
         time.sleep(1)
