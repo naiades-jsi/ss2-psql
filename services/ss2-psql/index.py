@@ -6,8 +6,10 @@ import datetime, time
 import schedule
 import subprocess
 import os
+import copy
 
 from data_models import alert_template
+from custom_error import Custom_error    
 import requests
 
 def get_last_ts():
@@ -90,6 +92,12 @@ def get_last_notifications(lastts):
 
 def postToFiware(data_model, entity_id, update):
     """Posts data model to the perscribed entity id"""
+    
+    global base_url
+    global fiware_headers
+
+    print(data_model)
+
     params = (
         ("options", "keyValues"),
     )
@@ -119,15 +127,15 @@ def create_data_model(obj):
     data_model = copy.deepcopy(alert_template)
 
     # time to datetime
-    time_stamp = datetime.datetime.utcfromtimestamp(timestamp_in_ns/1000000000)
+    time_stamp = datetime.datetime.utcfromtimestamp(obj["time"]/1000000)
     data_model["dateIssued"]["value"] = (time_stamp).isoformat() + ".00Z"
     title = obj["title"]
     content = obj["content"]
 
-    data_model["description"]["value"] = f"Title: {title}; Content: {content}"
+    data_model["description"]["value"] = f"Title: {title}, Content: {content}"
 
     # Sign and append signature
-    data_model = self.sign(data_model)
+    data_model = sign(data_model)
 
     return data_model
 
@@ -143,11 +151,11 @@ def job():
     data_model = create_data_model(obj)
 
     # Construct the entity (Alert) id TODO
-    entity_id = "urn:ngsi-ld:Alert:RO-braila-state-analysis-tool" 
+    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool" 
 
     # Try sendong the model
     try:
-        postToFiware(o, entity_id, False)
+        postToFiware(o, entity_id, True)
     except Exception as e:
         print(e, flush=True)
 
@@ -170,6 +178,8 @@ def sign(data_model):
     return data_model
 
 def encode(output_dict):
+    global API_user
+    global API_pass
     # Less prints
     debug = False
 
@@ -192,8 +202,12 @@ def encode(output_dict):
 
     return encodedZip        
 
-model_id_to_sensor = {
 
+model_id_to_sensor = {
+    101: "211106H360",
+    102: "211206H360",
+    103: "211306H360",
+    104: "318505H498"
 }
 
 if __name__ == '__main__':
@@ -217,3 +231,36 @@ if __name__ == '__main__':
     while True:
         schedule.run_pending()
         time.sleep(1)
+
+def test():
+    """
+    A method only used for testing the uplaod """
+    global base_url
+    global fiware_headers
+    global API_user
+    global API_pass
+    #Read FIWARE configuration
+    with open("config/config.json") as configuration:
+        conf = json.load(configuration)
+        base_url = conf["base_url"]
+        fiware_headers = conf["headers"]
+        API_user = conf["API_user"]
+        API_pass = conf["API_pass"]
+
+    obj = {
+        'id': 1,
+        'user_id': 12,
+        'model_id': 101,
+        'title': 'Test alert',
+        'content': 'Test content of the alert',
+        'time': 1649931489368.622
+    }
+
+    data_model = create_data_model(obj)
+    model_id = obj["model_id"]
+
+
+    # Construct the entity (Alert) id
+    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool" 
+
+    postToFiware(data_model, entity_id, True)
