@@ -1,0 +1,9 @@
+{
+    "base_url": "http://5.53.108.182:1026/v2/entities/",
+    "headers": {
+        "Fiware-Service": "braila",
+        "Content-Type": "application/json"
+    },
+    "API_user": "jsistate",
+    "API_pass": "atls87kdu72"
+}
