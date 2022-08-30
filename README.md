@@ -6,7 +6,7 @@ Buiild the docker file with:
 
 ```docker build -t e3ailab/uploader_ss2_psql_atena .```
 
- Push to DockerHub with `docker push`. After that, deploy on a target machine (Atena) with `docker run -d --network=streamstory_streamstory e3ailab/uploader_ss2_psql_atena`.
+ Push to DockerHub with `docker push`. After that, deploy on a target machine (Atena) with `docker run -d --network=streamstory_streamstory --name=naiades-ss2_psql e3ailab/uploader_ss2_psql_atena`.
 
 ## Setup
 
