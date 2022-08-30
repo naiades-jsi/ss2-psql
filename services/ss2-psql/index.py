@@ -210,7 +210,7 @@ def encode(output_dict):
 
     return encodedZip
 
-
+# definition of StreamStory2 models
 model_id_to_sensor = {
     204: "211206H360",
     203: "211306H360",
