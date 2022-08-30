@@ -7,22 +7,30 @@ import schedule
 import subprocess
 import os
 import copy
-
-from data_models import alert_template
-from custom_error import Custom_error    
 import requests
+import logging
+
+# project-based import
+from data_models import alert_template
+from custom_error import Custom_error
+
+
+# logging
+LOGGER = logging.getLogger("wf-monitor")
+logging.basicConfig(
+    format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s", level=logging.INFO)
 
 def get_last_ts():
     """Retrives a timestamp of the last observed notification."""
 
-    print("Obtaining last timestamp ...")
+    LOGGER.info("Obtaining last timestamp ...")
     try:
         with open('lastts.txt', 'r') as f:
             lastts = f.read()
-        print("Reading it from file ...")
+        LOGGER.info("Reading it from file ...")
     except Error:
         lastts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
-        print("No timestamp found, setting to current timestamp ({})...".format(lastts))
+        LOGGER.error("No timestamp found, setting to current timestamp ({})...".format(lastts))
     return(lastts)
 
 def write_last_ts(ts):
@@ -44,14 +52,14 @@ def get_last_notifications(lastts):
         params = config()
 
         # connect to the PostgreSQL server
-        print('Connecting to the PostgreSQL database...')
+        LOGGER.info('Connecting to the PostgreSQL database...')
         conn = psycopg2.connect(**params)
 
         # create a cursor
         cur = conn.cursor()
 
         # execute a statement
-        print('PostgreSQL fetch new')
+        LOGGER.info('PostgreSQL fetch new')
         cur.execute('SELECT id, user_id, model_id, title, content, time FROM notifications WHERE time > \'{}\''.format(lastts))
 
         # display the PostgreSQL database server version
@@ -81,22 +89,22 @@ def get_last_notifications(lastts):
         write_last_ts(lastts)
 
     except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        LOGGER.error(error)
     finally:
 
         if conn is not None:
             conn.close()
-            print('Database connection closed.')
+            LOGGER.info('Database connection closed.')
 
     return obj
 
 def postToFiware(data_model, entity_id, update):
     """Posts data model to the perscribed entity id"""
-    
+
     global base_url
     global fiware_headers
 
-    print(data_model)
+    LOGGER.info(data_model)
 
     params = (
         ("options", "keyValues"),
@@ -122,7 +130,7 @@ def postToFiware(data_model, entity_id, update):
         raise Custom_error(f"Error sending to the API. Response stauts code: {response.status_code}")
 
 def create_data_model(obj):
-    """Create the data model to post to FIWARE API from the object obtained 
+    """Create the data model to post to FIWARE API from the object obtained
     from the postgres."""
     data_model = copy.deepcopy(alert_template)
 
@@ -151,13 +159,13 @@ def job():
     data_model = create_data_model(obj)
 
     # Construct the entity (Alert) id TODO
-    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool" 
+    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
 
     # Try sendong the model
     try:
         postToFiware(o, entity_id, True)
     except Exception as e:
-        print(e, flush=True)
+        LOGGER.error("Exception: %s", str(e))
 
 def sign(data_model):
     # Try signing the message with KSI tool (requires execution in
@@ -165,9 +173,9 @@ def sign(data_model):
     try:
         signature = self.encode(data_model)
     except Exception as e:
-        print(f"Signing failed", flush=True)
+        LOGGER.info("Signing failed")
         signature = "null"
-    
+
     # Add signature to the message
     data_model["ksiSignature"] = {
         "metadata": {},
@@ -186,24 +194,24 @@ def encode(output_dict):
     # Transforms the JSON string ('dataJSON') to file (json.txt)
     os.system('echo %s > json.txt' %output_dict)
     #Sign the file using your credentials
-    os.system(f'ksi sign -i json.txt -o json.txt.ksig -S http://5.53.108.232:8080 --aggr-user {API_user} --aggr-key {API_pass}') 
-    
+    os.system(f'ksi sign -i json.txt -o json.txt.ksig -S http://5.53.108.232:8080 --aggr-user {API_user} --aggr-key {API_pass}')
+
     # get the signature
     with open("json.txt.ksig", "rb") as f:
         encodedZip = base64.b64encode(f.read())
         if debug:
-            print(encodedZip.decode())
+            LOGGER.debug(encodedZip.decode())
 
     # Checking if the signature is correct
     verification = subprocess.check_output(f'ksi verify -i json.txt.ksig -f json.txt -d --dump G -X http://5.53.108.232:8081 --ext-user {self.API_user} --ext-key {self.API_pass} -P http://verify.guardtime.com/ksi-publications.bin --cnstr E=publications@guardtime.com | grep -xq "    OK: No verification errors." ; echo $?', shell=True)
-    
-    # Raise error if it is not correctly signed 
+
+    # Raise error if it is not correctly signed
     assert int(verification) == True
 
-    return encodedZip        
+    return encodedZip
 
 
-model_id_to_sensor = {    
+model_id_to_sensor = {
     204: "211206H360",
     203: "211306H360",
     205: "318505H498"
@@ -260,6 +268,6 @@ def test():
 
 
     # Construct the entity (Alert) id
-    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool" 
+    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
 
     postToFiware(data_model, entity_id, True)
