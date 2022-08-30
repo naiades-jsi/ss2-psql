@@ -104,8 +104,6 @@ def postToFiware(data_model, entity_id, update):
     global base_url
     global fiware_headers
 
-    LOGGER.info(data_model)
-
     params = (
         ("options", "keyValues"),
     )
@@ -171,7 +169,7 @@ def job():
 
                     # Try sending the FIWARE
                     try:
-                        postToFiware(obj, entity_id, True)
+                        postToFiware(data_model, entity_id, True)
                     except Exception as e:
                         LOGGER.error("Exception - postToFiware: %s", str(e))
                 else:
