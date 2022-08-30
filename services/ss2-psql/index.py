@@ -150,22 +150,36 @@ def create_data_model(obj):
 def job():
     """Job for the scheduler, retrieving new notifications."""
 
-    lastts = get_last_ts()
-    obj = get_last_notifications(lastts)[-1]
-    model_id = obj["model_id"]
-
-    # PUT NAIADES FIWARE code here uzem sm zadnjega
-    # Create data model to be sent
-    data_model = create_data_model(obj)
-
-    # Construct the entity (Alert) id TODO
-    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
-
-    # Try sendong the model
     try:
-        postToFiware(obj, entity_id, True)
+        lastts = get_last_ts()
+        objs = get_last_notifications(lastts)
+        LOGGER.info("Data retrieved - size: %d", len(objs))
+        # get last from the list
+        if len(objs) > 0:
+
+            # iterate through received objects
+            for objs as obj:
+                model_id = obj["model_id"]
+
+                # PUT NAIADES FIWARE code here uzem sm zadnjega
+                # Create data model to be sent
+                data_model = create_data_model(obj)
+
+                # Construct the entity (Alert) id TODO
+                if (model_id in model_id_to_sensor):
+                    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
+
+                    # Try sending the FIWARE
+                    try:
+                        postToFiware(obj, entity_id, True)
+                    except Exception as e:
+                        LOGGER.error("Exception: %s", str(e))
+                else:
+                    LOGGER.info("The model is not interesting for the use case - model_id: %d", model_id)
+
     except Exception as e:
-        LOGGER.error("Exception: %s", str(e))
+        LOGGER.info("Exception: %s", str(e))
+
 
 def sign(data_model):
     # Try signing the message with KSI tool (requires execution in
@@ -232,7 +246,7 @@ if __name__ == '__main__':
 
     # scheduling each second (change to a more reasonable duration)
     # in production
-    schedule.every(1).seconds.do(job)
+    schedule.every(10).seconds.do(job)
 
     # infinite loop
     while True:
