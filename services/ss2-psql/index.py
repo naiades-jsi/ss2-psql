@@ -16,7 +16,7 @@ from custom_error import Custom_error
 
 
 # logging
-LOGGER = logging.getLogger("wf-monitor")
+LOGGER = logging.getLogger("ss2-psql")
 logging.basicConfig(
     format="%(asctime)s %(name)-12s %(levelname)-8s %(message)s", level=logging.INFO)
 
@@ -163,7 +163,7 @@ def job():
 
     # Try sendong the model
     try:
-        postToFiware(o, entity_id, True)
+        postToFiware(obj, entity_id, True)
     except Exception as e:
         LOGGER.error("Exception: %s", str(e))
 
