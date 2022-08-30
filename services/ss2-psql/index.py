@@ -158,7 +158,7 @@ def job():
         if len(objs) > 0:
 
             # iterate through received objects
-            for objs as obj:
+            for obj in objs:
                 model_id = obj["model_id"]
 
                 # PUT NAIADES FIWARE code here uzem sm zadnjega
@@ -173,12 +173,12 @@ def job():
                     try:
                         postToFiware(obj, entity_id, True)
                     except Exception as e:
-                        LOGGER.error("Exception: %s", str(e))
+                        LOGGER.error("Exception - postToFiware: %s", str(e))
                 else:
                     LOGGER.info("The model is not interesting for the use case - model_id: %d", model_id)
 
     except Exception as e:
-        LOGGER.info("Exception: %s", str(e))
+        LOGGER.info("Exception - job: %s", str(e))
 
 
 def sign(data_model):
