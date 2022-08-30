@@ -203,11 +203,10 @@ def encode(output_dict):
     return encodedZip        
 
 
-model_id_to_sensor = {
-    101: "211106H360",
-    102: "211206H360",
-    103: "211306H360",
-    104: "318505H498"
+model_id_to_sensor = {    
+    204: "211206H360",
+    203: "211306H360",
+    205: "318505H498"
 }
 
 if __name__ == '__main__':
