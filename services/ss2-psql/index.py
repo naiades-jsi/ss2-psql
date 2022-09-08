@@ -149,20 +149,19 @@ def create_data_model(obj):
 
 def job():
     """Job for the scheduler, retrieving new notifications."""
-
-    lastts = get_last_ts()
-    obj = get_last_notifications(lastts)[-1]
-    model_id = obj["model_id"]
-
-    # PUT NAIADES FIWARE code here uzem sm zadnjega
-    # Create data model to be sent
-    data_model = create_data_model(obj)
-
-    # Construct the entity (Alert) id TODO
-    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
-
-    # Try sendong the model
     try:
+        lastts = get_last_ts()
+        obj = get_last_notifications(lastts)[-1]
+        model_id = obj["model_id"]
+
+        # PUT NAIADES FIWARE code here uzem sm zadnjega
+        # Create data model to be sent
+        data_model = create_data_model(obj)
+
+        # Construct the entity (Alert) id TODO
+        entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
+
+        # Try sendong the model
         postToFiware(obj, entity_id, True)
     except Exception as e:
         LOGGER.error("Exception: %s", str(e))
