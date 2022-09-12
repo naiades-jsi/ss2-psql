@@ -156,7 +156,6 @@ def create_data_model(obj):
     # format title and content, remove \", \n
     title = title.replace("\n", "")
     title = title.replace("\"", "")
-
     content = content.replace("\n", "")
     content = content.replace("\"", "")
 
@@ -195,7 +194,7 @@ def job():
                             postToFiware(data_model, entity_id, True)
                         except Exception as e:
                             LOGGER.error("Exception - postToFiware: %s", str(e))
-                            print(traceback.format_exc())
+                            LOGGER.error(traceback.format_exc())
                     else:
                         LOGGER.info("The model is not interesting for the use case - model_id: %d", model_id)
                 except Exception as e:
@@ -223,30 +222,36 @@ def sign(data_model):
 
     return data_model
 
-def encode(output_dict):
-    global API_user
-    global API_pass
-    # Less prints
+def encode( output_dict):
+    """
+    Code provided by the partners to first obtain the KSI signature
+    (with the api_username and api_password from configuration) and
+    then validate it
+    """
+
+    # Less prints (not to be mistaken for self.debug)
     debug = False
 
     # Transforms the JSON string ('dataJSON') to file (json.txt)
     os.system('echo %s > json.txt' %output_dict)
     #Sign the file using your credentials
-    os.system(f'ksi sign -i json.txt -o json.txt.ksig -S http://5.53.108.232:8080 --aggr-user {API_user} --aggr-key {API_pass}')
+    os.system(f'ksi sign -i json.txt -o json.txt.ksig -S http://5.53.108.232:8080 --aggr-user {self.API_user} --aggr-key {self.API_pass}')
 
     # get the signature
     with open("json.txt.ksig", "rb") as f:
         encodedZip = base64.b64encode(f.read())
         if debug:
-            LOGGER.debug(encodedZip.decode())
+            print(encodedZip.decode())
 
     # Checking if the signature is correct
     verification = subprocess.check_output(f'ksi verify -i json.txt.ksig -f json.txt -d --dump G -X http://5.53.108.232:8081 --ext-user {self.API_user} --ext-key {self.API_pass} -P http://verify.guardtime.com/ksi-publications.bin --cnstr E=publications@guardtime.com | grep -xq "    OK: No verification errors." ; echo $?', shell=True)
 
     # Raise error if it is not correctly signed
-    assert int(verification) == True
+    # TODO once ksi is fixed change 1 to 0
+    assert int(verification) == 1
 
-    return encodedZip
+    # Must return a decoded string
+    return encodedZip.decode()
 
 # definition of StreamStory2 models
 model_id_to_sensor = {
