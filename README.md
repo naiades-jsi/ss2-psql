@@ -1,6 +1,17 @@
 # StreamStory2 - PostgreSQL connector
 
-## Deploy
+## Development (on Atena)
+
+Running the docker component on Atena (code is located at `/mnt/data/projects/naiades/ss2-psql`):
+```
+sudo docker run -it --rm -v /mnt/data/projects/naiades/ss2-psql/services:/home/app --network=streamstory_streamstory python:3.9 /bin/bash
+```
+
+This will open the docker in the streamstory network (so that PosgreSQL will be accessible to the scripts).
+
+Code can be edited with VS Code (Remote Explorer, in a directory `/home/app/ss2-psql`). Git should be used from prompt on Atena (and not within the container).
+
+## Deployment
 
 Buiild the docker file with:
 
@@ -33,14 +44,3 @@ The procedure will return an array of JSON objects (like depicted below).
 
 These JSON objects should be converted into alerts and sent to NAIADES platform via FIWARE.
 
-
-# Obsolete
-
-## Old development environment - OBSOLETE
-
-Running the docker component on Atena (code is located at `/mnt/data/projects/naiades/ss2-psql`):
-```
-sudo docker run -it --rm -v /mnt/data/projects/naiades/ss2-psql/services:/home/app --network=streamstory_streamstory python:3.9 /bin/bash
-```
-
-This will open the docker in the streamstory network (so that PosgreSQL will be accessible to the scripts).

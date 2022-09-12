@@ -1,5 +1,5 @@
 {
-    "base_url": "http://5.53.108.182:1026/v2/entities/",
+    "base_url": "http://5.53.108.182:5002/v2/entities/",
     "headers": {
         "Fiware-Service": "braila",
         "Content-Type": "application/json"

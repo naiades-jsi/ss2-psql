@@ -104,8 +104,6 @@ def postToFiware(data_model, entity_id, update):
     global base_url
     global fiware_headers
 
-    LOGGER.info(data_model)
-
     params = (
         ("options", "keyValues"),
     )
@@ -151,20 +149,34 @@ def job():
     """Job for the scheduler, retrieving new notifications."""
     try:
         lastts = get_last_ts()
-        obj = get_last_notifications(lastts)[-1]
-        model_id = obj["model_id"]
+        objs = get_last_notifications(lastts)
+        LOGGER.info("Data retrieved - size: %d", len(objs))
+        # get last from the list
+        if len(objs) > 0:
 
-        # PUT NAIADES FIWARE code here uzem sm zadnjega
-        # Create data model to be sent
-        data_model = create_data_model(obj)
+            # iterate through received objects
+            for obj in objs:
+                model_id = obj["model_id"]
 
-        # Construct the entity (Alert) id TODO
-        entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
+                # PUT NAIADES FIWARE code here uzem sm zadnjega
+                # Create data model to be sent
+                data_model = create_data_model(obj)
 
-        # Try sendong the model
-        postToFiware(obj, entity_id, True)
+                # Construct the entity (Alert) id TODO
+                if (model_id in model_id_to_sensor):
+                    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
+
+                    # Try sending the FIWARE
+                    try:
+                        postToFiware(data_model, entity_id, True)
+                    except Exception as e:
+                        LOGGER.error("Exception - postToFiware: %s", str(e))
+                else:
+                    LOGGER.info("The model is not interesting for the use case - model_id: %d", model_id)
+
     except Exception as e:
-        LOGGER.error("Exception: %s", str(e))
+        LOGGER.info("Exception - job: %s", str(e))
+
 
 def sign(data_model):
     # Try signing the message with KSI tool (requires execution in
@@ -231,7 +243,7 @@ if __name__ == '__main__':
 
     # scheduling each second (change to a more reasonable duration)
     # in production
-    schedule.every(1).seconds.do(job)
+    schedule.every(10).seconds.do(job)
 
     # infinite loop
     while True:
