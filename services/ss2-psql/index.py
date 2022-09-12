@@ -8,6 +8,7 @@ import subprocess
 import os
 import copy
 import requests
+import traceback
 import logging
 
 # project-based import
@@ -104,7 +105,7 @@ def postToFiware(data_model, entity_id, update):
     global base_url
     global fiware_headers
 
-    data_model["id"] = entity_id
+    # data_model["id"] = entity_id
     data_model["@context"] = [fiware_context]
 
     params = (
@@ -124,8 +125,9 @@ def postToFiware(data_model, entity_id, update):
 
         # Otherwise add type and id and create new entity
         if response.status_code > 300:
+            LOGGER.iNFO(" Status code (%d), creating entity.", response.status_code)
             data_model["type"] = dm_type
-            data_model["id"] = entity_id
+            # data_model["id"] = entity_id
             response = requests.post(create_url, headers=fiware_headers, params=params, data=json.dumps(data_model))
         LOGGER.info("Response from API code: %d", response.status_code)
     else:
@@ -139,40 +141,21 @@ def create_data_model(obj):
     """Create the data model to post to FIWARE API from the object obtained
     from the postgres."""
 
-    """
-        // JSON of the request
-        {
-            "@context": [
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
-            ],
-            "dateIssued": {
-                "type": "Property",
-                "value": {
-                    "@type": "DateTime",
-                    "@value": "2022-09-09T05:49:44.7036Z"
-                }
-            },
-            "description": {
-                "type": "Property",
-                "value": "Title: New data for model."
-            },
-            "ksiSignature": {
-                "type": "Property",
-                "value": "fail"
-            },
-            "updatedAttributes": {
-                "type": "Property",
-                "value": "category,dateIssued,description,ksiSignature,location,updatedAttributes"
-            }
-        }
-    """
     data_model = copy.deepcopy(alert_template)
 
     # time to datetime
-    time_stamp = datetime.datetime.utcfromtimestamp(obj["time"]/1000000)
-    data_model["dateIssued"]["value"]["@value"] = (time_stamp).isoformat() + ".0000Z"
+    time_stamp = datetime.datetime.utcfromtimestamp(obj["time"]/1000)
+    data_model["dateIssued"]["value"]["@value"] = (time_stamp).isoformat() + "Z"
     title = obj["title"]
     content = obj["content"]
+
+    # format title and content, remove \", \n
+    title = title.replace("\n", "")
+    title = title.replace("\"", "")
+
+    content = content.replace("\n", "")
+    content = content.replace("\"", "")
+
 
     data_model["description"]["value"] = f"Title: {title}, Content: {content}"
 
@@ -209,6 +192,7 @@ def job():
                             postToFiware(data_model, entity_id, True)
                         except Exception as e:
                             LOGGER.error("Exception - postToFiware: %s", str(e))
+                            print(traceback.format_exc())
                     else:
                         LOGGER.info("The model is not interesting for the use case - model_id: %d", model_id)
                 except Exception as e:
@@ -230,8 +214,7 @@ def sign(data_model):
 
     # Add signature to the message
     data_model["ksiSignature"] = {
-        "metadata": {},
-        "type": "Text",
+        "type": "Property",
         "value": signature
     }
 

@@ -19,6 +19,7 @@ alert_template = {
         "type": "Property",
         "value": "fail"
     },
+    "type": "Alert",
     "updatedAttributes": {
         "type": "Property",
         "value": "dateIssued,description,ksiSignature,updatedAttributes"
