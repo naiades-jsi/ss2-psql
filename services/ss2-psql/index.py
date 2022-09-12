@@ -106,10 +106,10 @@ def postToFiware(data_model, entity_id, update):
     global fiware_headers
 
     # data_model["id"] = entity_id
-    data_model["@context"] = [fiware_context]
+    # data_model["@context"] = [fiware_context]
 
     params = (
-        ("options", "keyValues"),
+        #("options", "keyValues"),
     )
     if update:
         dm_type = data_model["type"]
@@ -118,7 +118,8 @@ def postToFiware(data_model, entity_id, update):
         url = base_url + entity_id + "/attrs/"
 
         LOGGER.info("Patching: %s", url)
-        print(json.dumps(data_model))
+        LOGGER.info(fiware_headers)
+        LOGGER.info(json.dumps(data_model))
 
         # Try sending it to already existing entity (url)
         response = requests.patch(url, headers=fiware_headers, params=params, data=json.dumps(data_model) )
@@ -130,6 +131,7 @@ def postToFiware(data_model, entity_id, update):
             # data_model["id"] = entity_id
             response = requests.post(create_url, headers=fiware_headers, params=params, data=json.dumps(data_model))
         LOGGER.info("Response from API code: %d", response.status_code)
+        LOGGER.info(response.text)
     else:
         data_model["id"] = entity_id
         response = requests.post(base_url , headers=fiware_headers, params=params, data=json.dumps(data_model) )
@@ -145,7 +147,8 @@ def create_data_model(obj):
 
     # time to datetime
     time_stamp = datetime.datetime.utcfromtimestamp(obj["time"]/1000)
-    data_model["dateIssued"]["value"]["@value"] = (time_stamp).isoformat() + "Z"
+    # converting ISO format to 4 decimal places
+    data_model["dateIssued"]["value"]["@value"] = (time_stamp.isoformat())[0:-2] + "Z"
     title = obj["title"]
     content = obj["content"]
 
@@ -156,8 +159,7 @@ def create_data_model(obj):
     content = content.replace("\n", "")
     content = content.replace("\"", "")
 
-
-    data_model["description"]["value"] = f"Title: {title}, Content: {content}"
+    data_model["description"]["value"] = f"{title}" # no content anymore
 
     # Sign and append signature
     data_model = sign(data_model)
