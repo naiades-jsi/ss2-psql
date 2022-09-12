@@ -105,9 +105,7 @@ def postToFiware(data_model, entity_id, update):
     global base_url
     global fiware_headers
 
-    # data_model["id"] = entity_id
-    # data_model["@context"] = [fiware_context]
-
+    # this was removed in ld
     params = (
         #("options", "keyValues"),
     )
@@ -117,27 +115,30 @@ def postToFiware(data_model, entity_id, update):
 
         url = base_url + entity_id + "/attrs/"
 
+        # displaying debug information
         LOGGER.info("Patching: %s", url)
-        LOGGER.info(fiware_headers)
-        LOGGER.info(json.dumps(data_model))
+        LOGGER.info("Headers: %s", fiware_headers)
+        LOGGER.info("Payload: %s", json.dumps(data_model))
 
         # Try sending it to already existing entity (url)
         response = requests.patch(url, headers=fiware_headers, params=params, data=json.dumps(data_model) )
 
         # Otherwise add type and id and create new entity
+        # TODO: this was not tested!!!
         if response.status_code > 300:
             LOGGER.iNFO(" Status code (%d), creating entity.", response.status_code)
             data_model["type"] = dm_type
-            # data_model["id"] = entity_id
             response = requests.post(create_url, headers=fiware_headers, params=params, data=json.dumps(data_model))
         LOGGER.info("Response from API code: %d", response.status_code)
-        LOGGER.info(response.text)
+        # added because API sometimes returns code 200 with an error in the body!
+        LOGGER.info("Response text: %s", response.text)
     else:
+        # TODO: not tested, probably we should pop type here
         data_model["id"] = entity_id
         response = requests.post(base_url , headers=fiware_headers, params=params, data=json.dumps(data_model) )
 
-    if (response.status_code > 300):
-        raise Custom_error(f"Error sending to the API. Response stauts code: {response.status_code}")
+        if (response.status_code > 300):
+            raise Custom_error(f"Error sending to the API. Response stauts code: {response.status_code}")
 
 def create_data_model(obj):
     """Create the data model to post to FIWARE API from the object obtained
