@@ -104,6 +104,9 @@ def postToFiware(data_model, entity_id, update):
     global base_url
     global fiware_headers
 
+    data_model["id"] = entity_id
+    data_model["@context"] = [fiware_context]
+
     params = (
         ("options", "keyValues"),
     )
@@ -111,15 +114,20 @@ def postToFiware(data_model, entity_id, update):
         dm_type = data_model["type"]
         data_model.pop("type")
 
+        url = base_url + entity_id + "/attrs/"
+
+        LOGGER.info("Patching: %s", url)
+        print(json.dumps(data_model))
+
         # Try sending it to already existing entity (url)
-        response = requests.post(base_url + entity_id + "/attrs/" , headers=fiware_headers, params=params, data=json.dumps(data_model) )
+        response = requests.patch(url, headers=fiware_headers, params=params, data=json.dumps(data_model) )
 
         # Otherwise add type and id and create new entity
         if response.status_code > 300:
             data_model["type"] = dm_type
             data_model["id"] = entity_id
-            response = requests.post(base_url , headers=fiware_headers, params=params, data=json.dumps(data_model) )
-
+            response = requests.post(create_url, headers=fiware_headers, params=params, data=json.dumps(data_model))
+        LOGGER.info("Response from API code: %d", response.status_code)
     else:
         data_model["id"] = entity_id
         response = requests.post(base_url , headers=fiware_headers, params=params, data=json.dumps(data_model) )
@@ -130,11 +138,39 @@ def postToFiware(data_model, entity_id, update):
 def create_data_model(obj):
     """Create the data model to post to FIWARE API from the object obtained
     from the postgres."""
+
+    """
+        // JSON of the request
+        {
+            "@context": [
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"
+            ],
+            "dateIssued": {
+                "type": "Property",
+                "value": {
+                    "@type": "DateTime",
+                    "@value": "2022-09-09T05:49:44.7036Z"
+                }
+            },
+            "description": {
+                "type": "Property",
+                "value": "Title: New data for model."
+            },
+            "ksiSignature": {
+                "type": "Property",
+                "value": "fail"
+            },
+            "updatedAttributes": {
+                "type": "Property",
+                "value": "category,dateIssued,description,ksiSignature,location,updatedAttributes"
+            }
+        }
+    """
     data_model = copy.deepcopy(alert_template)
 
     # time to datetime
     time_stamp = datetime.datetime.utcfromtimestamp(obj["time"]/1000000)
-    data_model["dateIssued"]["value"] = (time_stamp).isoformat() + ".00Z"
+    data_model["dateIssued"]["value"]["@value"] = (time_stamp).isoformat() + ".0000Z"
     title = obj["title"]
     content = obj["content"]
 
@@ -157,23 +193,27 @@ def job():
 
             # iterate through received objects
             for obj in objs:
-                model_id = obj["model_id"]
+                try:
+                    model_id = obj["model_id"]
 
-                # PUT NAIADES FIWARE code here uzem sm zadnjega
-                # Create data model to be sent
-                data_model = create_data_model(obj)
+                    # PUT NAIADES FIWARE code here uzem sm zadnjega
+                    # Create data model to be sent
+                    data_model = create_data_model(obj)
 
-                # Construct the entity (Alert) id TODO
-                if (model_id in model_id_to_sensor):
-                    entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
+                    # Construct the entity (Alert) id TODO
+                    if (model_id in model_id_to_sensor):
+                        entity_id = f"urn:ngsi-ld:Alert:RO-Braila-{model_id_to_sensor[model_id]}-state-analysis-tool"
 
-                    # Try sending the FIWARE
-                    try:
-                        postToFiware(data_model, entity_id, True)
-                    except Exception as e:
-                        LOGGER.error("Exception - postToFiware: %s", str(e))
-                else:
-                    LOGGER.info("The model is not interesting for the use case - model_id: %d", model_id)
+                        # Try sending the FIWARE
+                        try:
+                            postToFiware(data_model, entity_id, True)
+                        except Exception as e:
+                            LOGGER.error("Exception - postToFiware: %s", str(e))
+                    else:
+                        LOGGER.info("The model is not interesting for the use case - model_id: %d", model_id)
+                except Exception as e:
+                    LOGGER.error("Exception - job - iterating through results: %s", str(e))
+
 
     except Exception as e:
         LOGGER.info("Exception - job: %s", str(e))
@@ -238,6 +278,7 @@ if __name__ == '__main__':
     with open("config/config.json") as configuration:
         conf = json.load(configuration)
         base_url = conf["base_url"]
+        fiware_context = conf["context"]
         fiware_headers = conf["headers"]
         API_user = conf["API_user"]
         API_pass = conf["API_pass"]
@@ -262,6 +303,7 @@ def test():
     with open("config/config.json") as configuration:
         conf = json.load(configuration)
         base_url = conf["base_url"]
+        create_url = conf["create_url"]
         fiware_headers = conf["headers"]
         API_user = conf["API_user"]
         API_pass = conf["API_pass"]
