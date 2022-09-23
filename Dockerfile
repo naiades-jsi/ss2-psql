@@ -6,4 +6,6 @@ FROM python:3.9
 COPY . /home/ss2-psql/
 WORKDIR "/home/ss2-psql/services/ss2-psql/"
 RUN pip3 install -r requirements.txt
+
+# e3ailab/uploader_ss2_psql_atena
 CMD ["python3", "index.py"]

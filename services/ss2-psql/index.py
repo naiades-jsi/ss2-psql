@@ -126,7 +126,7 @@ def postToFiware(data_model, entity_id, update):
         # Otherwise add type and id and create new entity
         # TODO: this was not tested!!!
         if response.status_code > 300:
-            LOGGER.iNFO(" Status code (%d), creating entity.", response.status_code)
+            LOGGER.info(" Status code (%d), creating entity.", response.status_code)
             data_model["type"] = dm_type
             response = requests.post(create_url, headers=fiware_headers, params=params, data=json.dumps(data_model))
         LOGGER.info("Response from API code: %d", response.status_code)
@@ -190,7 +190,10 @@ def job():
 
                         # Try sending the FIWARE
                         try:
-                            postToFiware(data_model, entity_id, True)
+                            if data_model["description"]["value"].startswith("New data"):
+                                LOGGER.info("New data alert ignored ... %s", data_model["description"]["value"])
+                            else:
+                                postToFiware(data_model, entity_id, True)
                         except Exception as e:
                             LOGGER.error("Exception - postToFiware: %s", str(e))
                             LOGGER.error(traceback.format_exc())
